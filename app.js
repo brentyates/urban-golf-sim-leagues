@@ -703,7 +703,7 @@ function renderLeaderboard() {
       const rs = tmData.roundScores[r];
       const gross = rs?.stableford ?? "";
       const net = ggNet[r] ?? "";
-      const hc = (typeof gross === "number" && typeof net === "number") ? net - gross : "";
+      const hc = (typeof gross === "number" && typeof net === "number") ? gross - net : "";
       row.push(gross, net, hc);
       if (typeof gross === "number") totalGross += gross;
     }
@@ -1055,7 +1055,7 @@ function getTeamHCData() {
       grossByRound[r] = gross;
       netByRound[r] = net;
       if (typeof gross === "number" && typeof net === "number") {
-        hcByRound[r] = net - gross;
+        hcByRound[r] = gross - net;
       }
     }
 
@@ -1336,7 +1336,7 @@ function exportToExcel() {
       const rs = tmData.roundScores[r];
       const gross = rs?.stableford ?? "";
       const net = ggNet[r] ?? "";
-      const hc = (typeof gross === "number" && typeof net === "number") ? net - gross : "";
+      const hc = (typeof gross === "number" && typeof net === "number") ? gross - net : "";
       row.push(gross, net, hc);
       if (typeof gross === "number") totalGross += gross;
     }
