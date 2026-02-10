@@ -324,7 +324,8 @@ function buildGGNetTeams(ggData) {
 
 function scoreMatch(tmScores, ggScores) {
   let exact = 0, total = 0, totalDiff = 0;
-  for (let rnum = 1; rnum <= 5; rnum++) {
+  const allRounds = new Set([...Object.keys(tmScores), ...Object.keys(ggScores)].map(Number));
+  for (const rnum of allRounds) {
     if (tmScores[rnum] !== undefined && ggScores[rnum] !== undefined) {
       total++;
       const diff = Math.abs(tmScores[rnum] - ggScores[rnum]);
@@ -335,16 +336,49 @@ function scoreMatch(tmScores, ggScores) {
   return { exact, total, totalDiff };
 }
 
+function nameTokens(name) {
+  return name
+    .toLowerCase()
+    .split(/[\s\/,.\-_]+/)
+    .filter(t => t.length >= 3 && !/^\d+$/.test(t));
+}
+
+function nameSimilarity(tmName, ggName) {
+  const tmToks = nameTokens(tmName);
+  const ggToks = nameTokens(ggName);
+  if (!tmToks.length || !ggToks.length) return 0;
+
+  let shared = 0;
+  const ggUsed = new Set();
+  for (const tt of tmToks) {
+    for (const gt of ggToks) {
+      if (ggUsed.has(gt)) continue;
+      if (tt === gt || tt.includes(gt) || gt.includes(tt)) {
+        shared++;
+        ggUsed.add(gt);
+        break;
+      }
+    }
+  }
+
+  const union = new Set([...tmToks, ...ggToks]).size;
+  return shared / union;
+}
+
+function getTmStableford(tmData) {
+  const s = {};
+  for (const [r, scores] of Object.entries(tmData.roundScores)) s[r] = scores.stableford;
+  return s;
+}
+
 function matchTeams(tmTeams, ggTeams) {
   const mapping = {};
   const usedGG = new Set();
 
-  // Pass 1: exact matches across 3+ rounds
+  // Pass 1: exact score matches across 3+ rounds
   for (const [tmName, tmData] of Object.entries(tmTeams)) {
-    const tmScores = tmData.roundScores;
-    if (Object.keys(tmScores).length < 3) continue;
-    const tmStableford = {};
-    for (const [r, s] of Object.entries(tmScores)) tmStableford[r] = s.stableford;
+    if (Object.keys(tmData.roundScores).length < 3) continue;
+    const tmStableford = getTmStableford(tmData);
 
     let best = null, bestExact = 0, bestTotal = 0, bestDiff = 999;
     for (const [ggName, ggScores] of Object.entries(ggTeams)) {
@@ -365,13 +399,11 @@ function matchTeams(tmTeams, ggTeams) {
     }
   }
 
-  // Pass 2: total diff <= 2 across 3+ rounds
+  // Pass 2: near score match (total diff <= 2) across 3+ rounds
   for (const [tmName, tmData] of Object.entries(tmTeams)) {
     if (mapping[tmName]) continue;
-    const tmScores = tmData.roundScores;
-    if (Object.keys(tmScores).length < 3) continue;
-    const tmStableford = {};
-    for (const [r, s] of Object.entries(tmScores)) tmStableford[r] = s.stableford;
+    if (Object.keys(tmData.roundScores).length < 3) continue;
+    const tmStableford = getTmStableford(tmData);
 
     let best = null, bestExact = 0, bestTotal = 0, bestDiff = 999;
     for (const [ggName, ggScores] of Object.entries(ggTeams)) {
@@ -392,19 +424,18 @@ function matchTeams(tmTeams, ggTeams) {
     }
   }
 
-  // Pass 3: fuzzy — 3+ rounds within 1pt each, total diff <= 5
+  // Pass 3: fuzzy score — 3+ rounds within 1pt each, total diff <= 5
   for (const [tmName, tmData] of Object.entries(tmTeams)) {
     if (mapping[tmName]) continue;
-    const tmScores = tmData.roundScores;
-    if (Object.keys(tmScores).length < 3) continue;
-    const tmStableford = {};
-    for (const [r, s] of Object.entries(tmScores)) tmStableford[r] = s.stableford;
+    if (Object.keys(tmData.roundScores).length < 3) continue;
+    const tmStableford = getTmStableford(tmData);
 
     let best = null, bestClose = 0, bestDiff = 999;
     for (const [ggName, ggScores] of Object.entries(ggTeams)) {
       if (usedGG.has(ggName)) continue;
       let closeCount = 0, total = 0, totalDiff = 0;
-      for (let rnum = 1; rnum <= 5; rnum++) {
+      const allRounds = new Set([...Object.keys(tmStableford), ...Object.keys(ggScores)].map(Number));
+      for (const rnum of allRounds) {
         if (tmStableford[rnum] !== undefined && ggScores[rnum] !== undefined) {
           total++;
           const d = Math.abs(tmStableford[rnum] - ggScores[rnum]);
@@ -427,6 +458,47 @@ function matchTeams(tmTeams, ggTeams) {
     }
   }
 
+  // Pass 4: combined name + score — for remaining unmatched, use name similarity
+  // weighted with whatever score evidence exists (works even with 1 round)
+  for (const [tmName, tmData] of Object.entries(tmTeams)) {
+    if (mapping[tmName]) continue;
+    const tmStableford = getTmStableford(tmData);
+
+    let best = null, bestScore = 0;
+    for (const [ggName, ggScores] of Object.entries(ggTeams)) {
+      if (usedGG.has(ggName)) continue;
+
+      const nSim = nameSimilarity(tmName, ggName);
+      const { exact, total, totalDiff } = scoreMatch(tmStableford, ggScores);
+
+      // Score similarity: 1.0 when all match, decreasing with diff
+      // Average diff per round, scaled so 0 diff = 1.0 and 5+ avg diff = 0
+      const scoreSim = total > 0 ? Math.max(0, 1 - (totalDiff / total) / 5) : 0;
+
+      // Combined: name and score reinforce each other
+      // Strong name match can compensate for score gaps and vice versa
+      const combined = (nSim * 0.5) + (scoreSim * 0.3) + (nSim * scoreSim * 0.2);
+
+      if (combined > bestScore) {
+        bestScore = combined;
+        best = { ggName, exact, total, totalDiff, nSim, scoreSim };
+      }
+    }
+
+    // Require meaningful evidence: decent name match, or name + some score agreement
+    if (best && bestScore >= 0.3 && (best.nSim >= 0.25 || best.total >= 1)) {
+      mapping[tmName] = {
+        ggName: best.ggName,
+        exact: best.exact,
+        total: best.total,
+        diff: best.totalDiff,
+        pass: 4,
+        nameSim: best.nSim,
+      };
+      usedGG.add(best.ggName);
+    }
+  }
+
   return { mapping, usedGG };
 }
 
@@ -435,7 +507,8 @@ function findDiscrepancies(tmTeams, ggTeams, mapping) {
   for (const [tmName, m] of Object.entries(mapping)) {
     const ggScores = ggTeams[m.ggName] || {};
     const tmScores = tmTeams[tmName]?.roundScores || {};
-    for (let rnum = 1; rnum <= 5; rnum++) {
+    const allRounds = new Set([...Object.keys(tmScores), ...Object.keys(ggScores)].map(Number));
+    for (const rnum of allRounds) {
       const tmPts = tmScores[rnum]?.stableford;
       const ggPts = ggScores[rnum];
       if (tmPts !== undefined && ggPts !== undefined) {
@@ -662,10 +735,10 @@ function renderMapping() {
     return;
   }
 
-  const passLabels = { 1: "Exact", 2: "Near (d\u22642)", 3: "Fuzzy" };
-  const passCls = { 1: "match-exact", 2: "match-near", 3: "match-fuzzy" };
+  const passLabels = { 1: "Exact", 2: "Near (d\u22642)", 3: "Fuzzy", 4: "Name+Score" };
+  const passCls = { 1: "match-exact", 2: "match-near", 3: "match-fuzzy", 4: "match-fuzzy" };
 
-  const stats = { 1: 0, 2: 0, 3: 0 };
+  const stats = { 1: 0, 2: 0, 3: 0, 4: 0 };
   for (const m of Object.values(mapping)) stats[m.pass]++;
 
   let summaryHtml = "<div style='margin-bottom:0.5rem'>";
@@ -684,7 +757,7 @@ function renderMapping() {
   const headers = [
     { label: "Trackman Name" },
     { label: "Golf Genius Name" },
-    { label: "Match Type", clsFn: (v) => v === "Exact" ? "match-exact" : v.startsWith("Near") ? "match-near" : "match-fuzzy" },
+    { label: "Match Type", clsFn: (v) => v === "Exact" ? "match-exact" : v.startsWith("Near") ? "match-near" : v === "Fuzzy" || v === "Name+Score" ? "match-fuzzy" : null },
     { label: "Exact Rounds", cls: "num" },
     { label: "Compared Rounds", cls: "num" },
     { label: "Total Diff", cls: "num" },
@@ -1006,7 +1079,7 @@ function exportToExcel() {
 
   // Sheet 2: Team Mapping
   const mapRows = [["Trackman Name", "Golf Genius Name", "Match Type", "Exact Rounds", "Compared Rounds", "Total Diff"]];
-  const passLabels = { 1: "Exact", 2: "Near", 3: "Fuzzy" };
+  const passLabels = { 1: "Exact", 2: "Near", 3: "Fuzzy", 4: "Name+Score" };
   for (const [tmName, m] of Object.entries(mapping).sort(([a], [b]) => a.localeCompare(b))) {
     mapRows.push([tmName, m.ggName, passLabels[m.pass], m.exact, m.total, m.diff]);
   }
@@ -1152,6 +1225,60 @@ function renderAll() {
   renderHoleByHole();
 }
 
+// ── Cache ──
+
+const CACHE_KEY = "winterLeagueCache";
+
+function saveCache() {
+  const data = {
+    tmTournament: state.tmTournament,
+    tmLeaderboard: state.tmLeaderboard,
+    ggData: state.ggData,
+    cachedAt: new Date().toISOString(),
+  };
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn("Cache save failed:", e);
+  }
+}
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data.tmLeaderboard || !data.ggData) return false;
+
+    state.tmTournament = data.tmTournament;
+    state.tmLeaderboard = data.tmLeaderboard;
+
+    const { teams, rounds } = processTmData(data.tmLeaderboard);
+    state.tmTeams = teams;
+    state.tmRounds = rounds;
+    state.mulligans = extractMulligans(rounds);
+
+    state.ggData = data.ggData;
+    state.ggTeams = buildGGTeams(data.ggData);
+    state.ggNetTeams = buildGGNetTeams(data.ggData);
+
+    runMatching();
+    renderAll();
+
+    const when = new Date(data.cachedAt);
+    setStatus(`Loaded from cache (${when.toLocaleString()})`);
+    return true;
+  } catch (e) {
+    console.warn("Cache load failed:", e);
+    return false;
+  }
+}
+
+function clearCache() {
+  localStorage.removeItem(CACHE_KEY);
+  setStatus("Cache cleared.");
+}
+
 async function fetchAll() {
   const btn = document.getElementById("btn-fetch-all");
   btn.disabled = true;
@@ -1160,6 +1287,7 @@ async function fetchAll() {
     await fetchGolfGenius();
     runMatching();
     renderAll();
+    saveCache();
     setStatus("Done.");
   } catch (err) {
     setStatus(`Error: ${err.message}`, true);
@@ -1201,3 +1329,5 @@ document.getElementById("btn-fetch-all").addEventListener("click", fetchAll);
 document.getElementById("btn-fetch-tm").addEventListener("click", fetchTmOnly);
 document.getElementById("btn-fetch-gg").addEventListener("click", fetchGgOnly);
 document.getElementById("btn-export").addEventListener("click", exportToExcel);
+document.getElementById("btn-clear-cache").addEventListener("click", clearCache);
+loadCache();
