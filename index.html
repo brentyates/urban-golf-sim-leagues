@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winter League Score Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Winter League Score Tool</h1>
+    <p class="subtitle">Trackman + Golf Genius cross-reference, discrepancy detection, and export</p>
+  </header>
+
+  <main>
+    <section id="config-panel" class="panel">
+      <h2>Configuration</h2>
+      <div class="config-grid">
+        <div class="config-group">
+          <h3>Trackman</h3>
+          <label>Tournament UUID
+            <input type="text" id="tm-uuid" value="389c39a2-850a-4385-82c9-8aaef616feaf">
+          </label>
+        </div>
+        <div class="config-group">
+          <h3>Golf Genius Sections</h3>
+          <div id="gg-sections"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-fetch-all" class="btn-primary">Fetch All</button>
+        <button id="btn-fetch-tm">Fetch Trackman Only</button>
+        <button id="btn-fetch-gg">Fetch Golf Genius Only</button>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+
+    <section id="results" class="panel hidden">
+      <nav class="tab-bar">
+        <button class="tab active" data-tab="tournament">Tournament</button>
+        <button class="tab" data-tab="leaderboard">Leaderboard</button>
+        <button class="tab" data-tab="mapping">Team Mapping</button>
+        <button class="tab" data-tab="discrepancies">Discrepancies</button>
+        <button class="tab" data-tab="mulligans">Mulligans</button>
+        <button class="tab" data-tab="hole-by-hole">Hole-by-Hole</button>
+      </nav>
+
+      <div id="tab-tournament" class="tab-content active">
+        <h2>Tournament Info</h2>
+        <div id="tournament-info"></div>
+      </div>
+
+      <div id="tab-leaderboard" class="tab-content">
+        <h2>Combined Leaderboard</h2>
+        <div id="leaderboard-view"></div>
+      </div>
+
+      <div id="tab-mapping" class="tab-content">
+        <h2>Team Cross-Reference</h2>
+        <div id="mapping-view"></div>
+      </div>
+
+      <div id="tab-discrepancies" class="tab-content">
+        <h2>Discrepancy &amp; Mulligan Report</h2>
+        <div id="discrepancies-view"></div>
+      </div>
+
+      <div id="tab-mulligans" class="tab-content">
+        <h2>Mulligan Usage</h2>
+        <div id="mulligans-view"></div>
+      </div>
+
+      <div id="tab-hole-by-hole" class="tab-content">
+        <h2>Hole-by-Hole Scorecards</h2>
+        <div id="hole-by-hole-view"></div>
+      </div>
+    </section>
+
+    <section id="export-panel" class="panel hidden">
+      <h2>Export</h2>
+      <button id="btn-export" class="btn-primary">Export to Excel</button>
+    </section>
+  </main>
+
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
