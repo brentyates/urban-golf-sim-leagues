@@ -1028,6 +1028,274 @@ function renderHoleByHole() {
   renderRound();
 }
 
+// ── HC Trends ──
+
+function getTeamHCData() {
+  const { tmTeams, mapping } = state;
+  const ggNetTeams = state.ggNetTeams || {};
+
+  const playedRounds = new Set();
+  for (const t of Object.values(tmTeams)) {
+    for (const r of Object.keys(t.roundScores)) playedRounds.add(parseInt(r));
+  }
+  const roundNums = [...playedRounds].sort((a, b) => a - b);
+
+  const teams = [];
+  for (const [tmName, tmData] of Object.entries(tmTeams)) {
+    const m = mapping[tmName];
+    const ggName = m?.ggName || "";
+    const ggNet = ggNetTeams[ggName] || {};
+
+    const hcByRound = {};
+    const grossByRound = {};
+    const netByRound = {};
+    for (const r of roundNums) {
+      const gross = tmData.roundScores[r]?.stableford;
+      const net = ggNet[r];
+      grossByRound[r] = gross;
+      netByRound[r] = net;
+      if (typeof gross === "number" && typeof net === "number") {
+        hcByRound[r] = net - gross;
+      }
+    }
+
+    const hcValues = Object.values(hcByRound).filter(v => typeof v === "number");
+    if (!hcValues.length) continue;
+
+    teams.push({
+      tmName,
+      ggName,
+      pos: tmData.total?.pos || 999,
+      hcByRound,
+      grossByRound,
+      netByRound,
+      avgHC: hcValues.reduce((s, v) => s + v, 0) / hcValues.length,
+      minHC: Math.min(...hcValues),
+      maxHC: Math.max(...hcValues),
+    });
+  }
+
+  return { teams: teams.sort((a, b) => a.pos - b.pos), roundNums };
+}
+
+function svgSparkline(hcByRound, roundNums, width, height, color) {
+  const values = roundNums.map(r => hcByRound[r]);
+  const defined = values.filter(v => typeof v === "number");
+  if (defined.length < 2) {
+    const y = height / 2;
+    const cx = width / 2;
+    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <circle cx="${cx}" cy="${y}" r="3" fill="${color}"/>
+    </svg>`;
+  }
+
+  const allHCs = Object.values(state.tmTeams).flatMap(t => {
+    const ggName = state.mapping[t.total?.pos ? Object.keys(state.tmTeams).find(n => state.tmTeams[n] === t) : ""]?.ggName;
+    return [];
+  });
+
+  const min = Math.min(...defined) - 1;
+  const max = Math.max(...defined) + 1;
+  const range = max - min || 1;
+  const pad = 4;
+  const innerW = width - pad * 2;
+  const innerH = height - pad * 2;
+
+  const points = [];
+  const dots = [];
+  const step = roundNums.length > 1 ? innerW / (roundNums.length - 1) : 0;
+
+  roundNums.forEach((r, i) => {
+    const v = hcByRound[r];
+    if (typeof v !== "number") return;
+    const x = pad + i * step;
+    const y = pad + innerH - ((v - min) / range) * innerH;
+    points.push(`${x},${y}`);
+    dots.push(`<circle cx="${x}" cy="${y}" r="2.5" fill="${color}"/>`);
+  });
+
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <polyline points="${points.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+    ${dots.join("")}
+  </svg>`;
+}
+
+function svgDetailChart(teamData, roundNums) {
+  const W = 500, H = 200, pad = { top: 20, right: 20, bottom: 30, left: 40 };
+  const iW = W - pad.left - pad.right;
+  const iH = H - pad.top - pad.bottom;
+
+  const allVals = [];
+  for (const r of roundNums) {
+    if (typeof teamData.grossByRound[r] === "number") allVals.push(teamData.grossByRound[r]);
+    if (typeof teamData.netByRound[r] === "number") allVals.push(teamData.netByRound[r]);
+  }
+  if (!allVals.length) return "";
+
+  const min = Math.min(...allVals) - 2;
+  const max = Math.max(...allVals) + 2;
+  const range = max - min || 1;
+
+  function x(i) { return pad.left + (roundNums.length > 1 ? (i / (roundNums.length - 1)) * iW : iW / 2); }
+  function y(v) { return pad.top + iH - ((v - min) / range) * iH; }
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:sans-serif">`;
+
+  // Grid lines
+  const gridSteps = 5;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = min + (range * i / gridSteps);
+    const gy = y(val);
+    svg += `<line x1="${pad.left}" y1="${gy}" x2="${W - pad.right}" y2="${gy}" stroke="#e2e8f0" stroke-width="1"/>`;
+    svg += `<text x="${pad.left - 6}" y="${gy + 3}" text-anchor="end" font-size="10" fill="#94a3b8">${Math.round(val)}</text>`;
+  }
+
+  // X-axis labels
+  roundNums.forEach((r, i) => {
+    svg += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#64748b">R${r}</text>`;
+  });
+
+  // HC fill area
+  const hcPoints = [];
+  roundNums.forEach((r, i) => {
+    const g = teamData.grossByRound[r];
+    const n = teamData.netByRound[r];
+    if (typeof g === "number" && typeof n === "number") {
+      hcPoints.push({ i, gy: y(g), ny: y(n), x: x(i) });
+    }
+  });
+  if (hcPoints.length >= 2) {
+    const topPath = hcPoints.map(p => `${p.x},${p.ny}`).join(" ");
+    const botPath = hcPoints.slice().reverse().map(p => `${p.x},${p.gy}`).join(" ");
+    svg += `<polygon points="${topPath} ${botPath}" fill="#2563eb" opacity="0.12"/>`;
+  }
+
+  // Lines: gross, net
+  function line(getData, color) {
+    const pts = [];
+    const dots = [];
+    roundNums.forEach((r, i) => {
+      const v = getData(r);
+      if (typeof v !== "number") return;
+      const px = x(i), py = y(v);
+      pts.push(`${px},${py}`);
+      dots.push(`<circle cx="${px}" cy="${py}" r="4" fill="${color}" stroke="#fff" stroke-width="1.5"/>`);
+    });
+    if (pts.length < 2) return dots.join("");
+    return `<polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>` + dots.join("");
+  }
+
+  svg += line(r => teamData.grossByRound[r], "#16a34a");
+  svg += line(r => teamData.netByRound[r], "#ea580c");
+
+  // HC value labels between lines
+  roundNums.forEach((r, i) => {
+    const hc = teamData.hcByRound[r];
+    if (typeof hc !== "number") return;
+    const g = teamData.grossByRound[r];
+    const n = teamData.netByRound[r];
+    if (typeof g !== "number" || typeof n !== "number") return;
+    const midY = (y(g) + y(n)) / 2;
+    svg += `<text x="${x(i) + 12}" y="${midY + 4}" font-size="11" font-weight="600" fill="#2563eb">${hc >= 0 ? "+" : ""}${hc}</text>`;
+  });
+
+  svg += "</svg>";
+  return svg;
+}
+
+function renderHCTrends() {
+  const container = document.getElementById("hc-trends-view");
+  container.innerHTML = "";
+
+  const { teams, roundNums } = getTeamHCData();
+  if (!teams.length) {
+    container.innerHTML = "<p>Need both Trackman and Golf Genius data with team matching.</p>";
+    return;
+  }
+
+  // Detail chart area
+  const detailDiv = document.createElement("div");
+  detailDiv.className = "hc-detail-chart";
+  detailDiv.id = "hc-detail";
+  detailDiv.innerHTML = "<p style='color:#94a3b8;font-size:0.85rem'>Click a team below to see their detailed trend</p>";
+  container.appendChild(detailDiv);
+
+  // Table
+  const tableWrapper = document.createElement("div");
+  tableWrapper.className = "table-wrapper";
+  const table = document.createElement("table");
+  table.id = "hc-trends-table";
+
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  ["Pos", "Team", ...roundNums.map(r => `R${r} HC`), "Avg HC", "Trend"].forEach(label => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const team of teams) {
+    const tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+
+    const tdPos = document.createElement("td");
+    tdPos.textContent = team.pos === 999 ? "" : team.pos;
+    tdPos.className = "num";
+    tr.appendChild(tdPos);
+
+    const tdName = document.createElement("td");
+    tdName.textContent = team.tmName;
+    tr.appendChild(tdName);
+
+    for (const r of roundNums) {
+      const td = document.createElement("td");
+      const hc = team.hcByRound[r];
+      td.textContent = typeof hc === "number" ? (hc >= 0 ? "+" + hc : hc) : "";
+      td.className = "num";
+      if (typeof hc === "number" && hc > 0) td.classList.add("diff-positive");
+      tr.appendChild(td);
+    }
+
+    const tdAvg = document.createElement("td");
+    tdAvg.textContent = team.avgHC.toFixed(1);
+    tdAvg.className = "num";
+    tr.appendChild(tdAvg);
+
+    const tdTrend = document.createElement("td");
+    tdTrend.innerHTML = svgSparkline(team.hcByRound, roundNums, 100, 28, "#2563eb");
+    tdTrend.className = "hc-sparkline";
+    tr.appendChild(tdTrend);
+
+    tr.addEventListener("click", () => {
+      tbody.querySelectorAll("tr").forEach(r => r.classList.remove("hc-selected"));
+      tr.classList.add("hc-selected");
+      showHCDetail(team, roundNums);
+    });
+
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  tableWrapper.appendChild(table);
+  container.appendChild(tableWrapper);
+}
+
+function showHCDetail(team, roundNums) {
+  const el = document.getElementById("hc-detail");
+  let html = `<h3>${team.tmName}`;
+  if (team.ggName) html += ` <span style="color:#64748b;font-weight:normal;font-size:0.8rem">(${team.ggName})</span>`;
+  html += `</h3>`;
+  html += svgDetailChart(team, roundNums);
+  html += `<div class="hc-legend">
+    <span class="leg-gross">Gross Stableford</span>
+    <span class="leg-net">Net Stableford</span>
+    <span class="leg-hc">HC Benefit (shaded area)</span>
+  </div>`;
+  el.innerHTML = html;
+}
+
 // ── Excel Export ──
 
 function exportToExcel() {
@@ -1223,6 +1491,7 @@ function renderAll() {
   renderDiscrepancies();
   renderMulligans();
   renderHoleByHole();
+  renderHCTrends();
 }
 
 // ── Cache ──

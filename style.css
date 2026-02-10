@@ -221,6 +221,45 @@ td.mulligan { background: #fef3c7; }
   overflow-y: auto;
 }
 
+.hc-detail-chart {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hc-detail-chart h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+
+.hc-detail-chart svg { display: block; }
+
+.hc-sparkline { cursor: pointer; }
+.hc-sparkline:hover { opacity: 0.7; }
+
+tr.hc-selected { background: #e0e7ff !important; }
+
+.hc-legend {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.4rem;
+}
+
+.hc-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+  border-radius: 1px;
+}
+
+.hc-legend .leg-hc::before { background: #2563eb; }
+.hc-legend .leg-gross::before { background: #16a34a; }
+.hc-legend .leg-net::before { background: #ea580c; }
+
 .filter-bar {
   margin-bottom: 0.5rem;
 }
