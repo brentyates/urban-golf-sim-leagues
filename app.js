@@ -1,20 +1,17 @@
 const TM_API = "https://api.trackmangolf.com/graphql";
 const GG_BASE = "https://www.golfgenius.com";
 
-// TODO: Replace placeholder IDs with actual Golf Genius section IDs for spring league
 const GG_SECTIONS = [
-  { id: "", name: "Overall Gross Stableford", type: "overall" },
-  { id: "", name: "Overall NET Stableford", type: "overall" },
-  { id: "", name: "R5 Net", type: "net" },
-  { id: "", name: "R5 Gross", type: "gross" },
-  { id: "", name: "R4 Net", type: "net" },
-  { id: "", name: "R4 Gross", type: "gross" },
-  { id: "", name: "R3 Net", type: "net" },
-  { id: "", name: "R3 Gross", type: "gross" },
-  { id: "", name: "R2 Net", type: "net" },
-  { id: "", name: "R2 Gross", type: "gross" },
-  { id: "", name: "R1 Net", type: "net" },
-  { id: "", name: "R1 Gross", type: "gross" },
+  { id: "UGSL26RD5", name: "R5 Net", type: "net" },
+  { id: "UGSL26RD5", name: "R5 Gross", type: "gross" },
+  { id: "UGSL26RD4", name: "R4 Net", type: "net" },
+  { id: "UGSL26RD4", name: "R4 Gross", type: "gross" },
+  { id: "UGSL26RD3", name: "R3 Net", type: "net" },
+  { id: "UGSL26RD3", name: "R3 Gross", type: "gross" },
+  { id: "UGSL26RD2", name: "R2 Net", type: "net" },
+  { id: "UGSL26RD2", name: "R2 Gross", type: "gross" },
+  { id: "UGSL26RD1", name: "R1 Net", type: "net" },
+  { id: "UGSL26RD1", name: "R1 Gross", type: "gross" },
 ];
 
 const state = {
