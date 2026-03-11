@@ -5,16 +5,16 @@ const GG_BASE = "https://www.golfgenius.com";
 const GG_SECTIONS = [
   { id: "", name: "Overall Gross Stableford", type: "overall" },
   { id: "", name: "Overall NET Stableford", type: "overall" },
-  { id: "", name: "R5 TBD Net", type: "net" },
-  { id: "", name: "R5 TBD Gross", type: "gross" },
-  { id: "", name: "R4 TBD Net", type: "net" },
-  { id: "", name: "R4 TBD Gross", type: "gross" },
-  { id: "", name: "R3 TBD Net", type: "net" },
-  { id: "", name: "R3 TBD Gross", type: "gross" },
-  { id: "", name: "R2 TBD Net", type: "net" },
-  { id: "", name: "R2 TBD Gross", type: "gross" },
-  { id: "", name: "R1 TBD Net", type: "net" },
-  { id: "", name: "R1 TBD Gross", type: "gross" },
+  { id: "", name: "R5 Net", type: "net" },
+  { id: "", name: "R5 Gross", type: "gross" },
+  { id: "", name: "R4 Net", type: "net" },
+  { id: "", name: "R4 Gross", type: "gross" },
+  { id: "", name: "R3 Net", type: "net" },
+  { id: "", name: "R3 Gross", type: "gross" },
+  { id: "", name: "R2 Net", type: "net" },
+  { id: "", name: "R2 Gross", type: "gross" },
+  { id: "", name: "R1 Net", type: "net" },
+  { id: "", name: "R1 Gross", type: "gross" },
 ];
 
 const state = {
