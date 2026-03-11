@@ -1,17 +1,16 @@
 const TM_API = "https://api.trackmangolf.com/graphql";
 const GG_BASE = "https://www.golfgenius.com";
 
+// TODO: Board IDs need to be grabbed from Golf Genius widget URLs (login codes: UGSL26RD1-RD8)
 const GG_SECTIONS = [
-  { id: "UGSL26RD5", name: "R5 Net", type: "net" },
-  { id: "UGSL26RD5", name: "R5 Gross", type: "gross" },
-  { id: "UGSL26RD4", name: "R4 Net", type: "net" },
-  { id: "UGSL26RD4", name: "R4 Gross", type: "gross" },
-  { id: "UGSL26RD3", name: "R3 Net", type: "net" },
-  { id: "UGSL26RD3", name: "R3 Gross", type: "gross" },
-  { id: "UGSL26RD2", name: "R2 Net", type: "net" },
-  { id: "UGSL26RD2", name: "R2 Gross", type: "gross" },
-  { id: "UGSL26RD1", name: "R1 Net", type: "net" },
-  { id: "UGSL26RD1", name: "R1 Gross", type: "gross" },
+  { id: "", name: "R8", type: "round" },
+  { id: "", name: "R7", type: "round" },
+  { id: "", name: "R6", type: "round" },
+  { id: "", name: "R5", type: "round" },
+  { id: "", name: "R4", type: "round" },
+  { id: "", name: "R3", type: "round" },
+  { id: "", name: "R2", type: "round" },
+  { id: "", name: "R1", type: "round" },
 ];
 
 const state = {
