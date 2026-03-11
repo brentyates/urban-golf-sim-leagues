@@ -1,19 +1,16 @@
 const TM_API = "https://api.trackmangolf.com/graphql";
 const GG_BASE = "https://www.golfgenius.com";
 
+// TODO: Board IDs need to be grabbed from Golf Genius widget URLs (login codes: UGSL26RD1-RD8)
 const GG_SECTIONS = [
-  { id: "12312864691629115220", name: "Overall Gross Stableford", type: "overall" },
-  { id: "12396691282842404585", name: "Overall NET Stableford", type: "overall" },
-  { id: "12396942319587215124", name: "R5 Emirates Net", type: "net" },
-  { id: "12396943009231456021", name: "R5 Emirates Gross", type: "gross" },
-  { id: "12396940865438795538", name: "R4 Clear Creek Net", type: "net" },
-  { id: "12396941480827078419", name: "R4 Clear Creek Gross", type: "gross" },
-  { id: "12396937201831692048", name: "R3 PGA West Net", type: "net" },
-  { id: "12396937845271480081", name: "R3 PGA West Gross", type: "gross" },
-  { id: "12396934600021034766", name: "R2 Turning Stone Net", type: "net" },
-  { id: "12396935317448345359", name: "R2 Turning Stone Gross", type: "gross" },
-  { id: "12396929683659212556", name: "R1 Hualalai Net", type: "net" },
-  { id: "12396931156967212813", name: "R1 Hualalai Gross", type: "gross" },
+  { id: "", name: "R8", type: "round" },
+  { id: "", name: "R7", type: "round" },
+  { id: "", name: "R6", type: "round" },
+  { id: "", name: "R5", type: "round" },
+  { id: "", name: "R4", type: "round" },
+  { id: "", name: "R3", type: "round" },
+  { id: "", name: "R2", type: "round" },
+  { id: "", name: "R1", type: "round" },
 ];
 
 const state = {
@@ -1391,7 +1388,7 @@ function exportToExcel() {
   }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hbhRows), "Hole-by-Hole");
 
-  XLSX.writeFile(wb, "winter_league_data.xlsx");
+  XLSX.writeFile(wb, "spring_league_data.xlsx");
 }
 
 // ── GG Section Config UI ──
@@ -1496,7 +1493,7 @@ function renderAll() {
 
 // ── Cache ──
 
-const CACHE_KEY = "winterLeagueCache";
+const CACHE_KEY = "springLeagueCache";
 
 function saveCache() {
   const data = {
