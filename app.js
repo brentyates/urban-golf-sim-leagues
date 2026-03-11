@@ -1,16 +1,33 @@
 const TM_API = "https://api.trackmangolf.com/graphql";
 const GG_BASE = "https://www.golfgenius.com";
 
-// TODO: Board IDs need to be grabbed from Golf Genius widget URLs (login codes: UGSL26RD1-RD8)
 const GG_SECTIONS = [
-  { id: "", name: "R8", type: "round" },
-  { id: "", name: "R7", type: "round" },
-  { id: "", name: "R6", type: "round" },
-  { id: "", name: "R5", type: "round" },
-  { id: "", name: "R4", type: "round" },
-  { id: "", name: "R3", type: "round" },
-  { id: "", name: "R2", type: "round" },
-  { id: "", name: "R1", type: "round" },
+  { id: "12484590993607280534", name: "Overall Gross Stableford", type: "overall" },
+  { id: "12484591176445380519", name: "Overall NET Stableford", type: "overall" },
+  { id: "", name: "R8 Skins", type: "skins" },
+  { id: "", name: "R8 Net", type: "net" },
+  { id: "", name: "R8 Gross", type: "gross" },
+  { id: "", name: "R7 Skins", type: "skins" },
+  { id: "", name: "R7 Net", type: "net" },
+  { id: "", name: "R7 Gross", type: "gross" },
+  { id: "", name: "R6 Skins", type: "skins" },
+  { id: "", name: "R6 Net", type: "net" },
+  { id: "", name: "R6 Gross", type: "gross" },
+  { id: "", name: "R5 Skins", type: "skins" },
+  { id: "", name: "R5 Net", type: "net" },
+  { id: "", name: "R5 Gross", type: "gross" },
+  { id: "", name: "R4 Skins", type: "skins" },
+  { id: "", name: "R4 Net", type: "net" },
+  { id: "", name: "R4 Gross", type: "gross" },
+  { id: "", name: "R3 Skins", type: "skins" },
+  { id: "", name: "R3 Net", type: "net" },
+  { id: "", name: "R3 Gross", type: "gross" },
+  { id: "", name: "R2 Skins", type: "skins" },
+  { id: "", name: "R2 Net", type: "net" },
+  { id: "", name: "R2 Gross", type: "gross" },
+  { id: "12484591026322851835", name: "R1 Sharpley Springs Skins", type: "skins" },
+  { id: "12484591245735282608", name: "R1 Sharpley Springs Net", type: "net" },
+  { id: "12484591262747379633", name: "R1 Sharpley Springs Gross", type: "gross" },
 ];
 
 const state = {
